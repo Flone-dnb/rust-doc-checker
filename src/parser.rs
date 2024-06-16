@@ -39,6 +39,13 @@ pub struct EnumInfo<'src> {
     pub docs: String,
 }
 
+/// Groups parsed information about a trait.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TraitInfo<'src> {
+    pub name: &'src str,
+    pub docs: String,
+}
+
 /// Groups parsed information about a const value.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstInfo<'src> {
@@ -60,6 +67,7 @@ pub enum ComplexToken<'src> {
     Struct(StructInfo<'src>),
     Function(FunctionInfo<'src>),
     Enum(EnumInfo<'src>),
+    Trait(TraitInfo<'src>),
     Other(Token<'src>),
 }
 
@@ -166,6 +174,20 @@ where
             })
         });
 
+    // A parser for traits.
+    let trait_parser = comment
+        .repeated()
+        .collect::<Vec<&str>>()
+        .then_ignore(just(Token::Ident("pub")).or_not())
+        .then_ignore(just(Token::Ident("trait")))
+        .then(ident) // name
+        .map(|(opt_comments, name)| {
+            ComplexToken::Trait(TraitInfo {
+                name,
+                docs: opt_comments.concat(),
+            })
+        });
+
     // A parser for function arguments.
     let non_self_func_argument = ident // name
         .then_ignore(just(Token::Ctrl(':')))
@@ -224,6 +246,7 @@ where
     let output = struct_parser
         .or(function)
         .or(enum_parser)
+        .or(trait_parser)
         .or(token.map(ComplexToken::Other));
 
     output

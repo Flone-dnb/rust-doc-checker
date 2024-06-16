@@ -116,4 +116,9 @@ mod tests {
     fn enum_docs() {
         test_doc_check_fail_success("enum_docs");
     }
+
+    #[test]
+    fn trait_docs() {
+        test_doc_check_fail_success("trait_docs");
+    }
 }
