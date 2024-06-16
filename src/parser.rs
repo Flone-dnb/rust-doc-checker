@@ -193,7 +193,11 @@ where
         .then_ignore(just(Token::Ctrl(':')))
         .then_ignore(
             just(Token::Other('&'))
-                .then_ignore(just(Token::Ident("mut")).or_not())
+                .then_ignore(
+                    just(Token::Ident("mut"))
+                        .or(just(Token::Ident("impl"))) // trait as argument
+                        .or_not(),
+                )
                 .or_not(),
         )
         .then(ident) // type
