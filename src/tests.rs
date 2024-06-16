@@ -111,4 +111,9 @@ mod tests {
     fn struct_docs() {
         test_doc_check_fail_success("struct_docs");
     }
+
+    #[test]
+    fn enum_docs() {
+        test_doc_check_fail_success("enum_docs");
+    }
 }

@@ -32,6 +32,13 @@ pub struct StructInfo<'src> {
     pub docs: String,
 }
 
+/// Groups parsed information about an enum.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EnumInfo<'src> {
+    pub name: &'src str,
+    pub docs: String,
+}
+
 /// Groups parsed information about a const value.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstInfo<'src> {
@@ -52,6 +59,7 @@ pub struct FunctionInfo<'src> {
 pub enum ComplexToken<'src> {
     Struct(StructInfo<'src>),
     Function(FunctionInfo<'src>),
+    Enum(EnumInfo<'src>),
     Other(Token<'src>),
 }
 
@@ -127,7 +135,7 @@ where
         });
 
     // A parser for structs.
-    let _struct = comment
+    let struct_parser = comment
         .repeated()
         .collect::<Vec<&str>>()
         .then_ignore(just(Token::Ident("pub")).or_not())
@@ -140,6 +148,20 @@ where
             ComplexToken::Struct(StructInfo {
                 name,
                 fields,
+                docs: opt_comments.concat(),
+            })
+        });
+
+    // A parser for enums.
+    let enum_parser = comment
+        .repeated()
+        .collect::<Vec<&str>>()
+        .then_ignore(just(Token::Ident("pub")).or_not())
+        .then_ignore(just(Token::Ident("enum")))
+        .then(ident) // name
+        .map(|(opt_comments, name)| {
+            ComplexToken::Enum(EnumInfo {
+                name,
                 docs: opt_comments.concat(),
             })
         });
@@ -189,7 +211,10 @@ where
         });
 
     // If non of our parsers from above worked then just pass the token.
-    let output = _struct.or(function).or(token.map(ComplexToken::Other));
+    let output = struct_parser
+        .or(function)
+        .or(enum_parser)
+        .or(token.map(ComplexToken::Other));
 
     output
         .map_with(|t, extra| (t, extra.span()))

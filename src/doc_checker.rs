@@ -2,8 +2,8 @@ use chumsky::prelude::*;
 use chumsky::span::SimpleSpan;
 
 use crate::{
-    helpers::{self},
-    parser::{self, ComplexToken::*, FunctionInfo, StructInfo},
+    helpers,
+    parser::{self, ComplexToken::*, EnumInfo, FunctionInfo, StructInfo},
 };
 
 const RETURN_DOC_KEYWORD: &str = "Return";
@@ -103,15 +103,14 @@ impl DocChecker {
         for (complex_token, _) in complex_tokens {
             match complex_token {
                 Struct(info) => {
-                    // Check docs.
                     Self::check_struct_docs(&info)?;
-
-                    // Check field docs.
                     Self::check_struct_field_docs(&info)?
                 }
                 Function(info) => {
-                    // Check docs.
                     Self::check_function_docs(&info)?;
+                }
+                Enum(info) => {
+                    Self::check_enum_docs(&info)?;
                 }
                 _ => {}
             }
@@ -218,6 +217,18 @@ impl DocChecker {
             return Err(format!(
                 "expected to find documentation for the struct \"{}\"",
                 struct_info.name
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn check_enum_docs(enum_info: &EnumInfo) -> Result<(), String> {
+        // Make sure docs are not empty.
+        if enum_info.docs.is_empty() {
+            return Err(format!(
+                "expected to find documentation for the enum \"{}\"",
+                enum_info.name
             ));
         }
 
