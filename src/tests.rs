@@ -121,4 +121,9 @@ mod tests {
     fn trait_docs() {
         test_doc_check_fail_success("trait_docs");
     }
+
+    #[test]
+    fn const_docs() {
+        test_doc_check_fail_success("const_docs");
+    }
 }

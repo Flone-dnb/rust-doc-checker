@@ -3,7 +3,7 @@ use chumsky::span::SimpleSpan;
 
 use crate::{
     helpers,
-    parser::{self, ComplexToken::*, EnumInfo, FunctionInfo, StructInfo, TraitInfo},
+    parser::{self, ComplexToken::*, ConstInfo, EnumInfo, FunctionInfo, StructInfo, TraitInfo},
 };
 
 const RETURN_DOC_KEYWORD: &str = "Return";
@@ -114,6 +114,9 @@ impl DocChecker {
                 }
                 Trait(info) => {
                     Self::check_trait_docs(&info)?;
+                }
+                Const(info) => {
+                    Self::check_const_docs(&info)?;
                 }
                 Other(_) => {}
             }
@@ -244,6 +247,18 @@ impl DocChecker {
             return Err(format!(
                 "expected to find documentation for the trait \"{}\"",
                 trait_info.name
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn check_const_docs(const_info: &ConstInfo) -> Result<(), String> {
+        // Make sure docs are not empty.
+        if const_info.docs.is_empty() {
+            return Err(format!(
+                "expected to find documentation for the const \"{}\"",
+                const_info.name
             ));
         }
 

@@ -68,6 +68,7 @@ pub enum ComplexToken<'src> {
     Function(FunctionInfo<'src>),
     Enum(EnumInfo<'src>),
     Trait(TraitInfo<'src>),
+    Const(ConstInfo<'src>),
     Other(Token<'src>),
 }
 
@@ -188,6 +189,20 @@ where
             })
         });
 
+    // A parser for const values.
+    let const_parser = comment
+        .repeated()
+        .collect::<Vec<&str>>()
+        .then_ignore(just(Token::Ident("pub")).or_not())
+        .then_ignore(just(Token::Ident("const")))
+        .then(ident) // name
+        .map(|(opt_comments, name)| {
+            ComplexToken::Const(ConstInfo {
+                name,
+                docs: opt_comments.concat(),
+            })
+        });
+
     // A parser for function arguments.
     let non_self_func_argument = ident // name
         .then_ignore(just(Token::Ctrl(':')))
@@ -247,9 +262,10 @@ where
         });
 
     // If non of our parsers from above worked then just pass the token.
-    let output = struct_parser
-        .or(function)
+    let output = function
+        .or(struct_parser)
         .or(enum_parser)
+        .or(const_parser)
         .or(trait_parser)
         .or(token.map(ComplexToken::Other));
 
