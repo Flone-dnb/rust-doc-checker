@@ -134,11 +134,12 @@ where
     let field = comment
         .repeated()
         .collect::<Vec<&str>>()
+        .then_ignore(just(Token::Ident("pub")).or_not())
         .then(ident) // name
         .then_ignore(just(Token::Ctrl(':')))
-        .then(ident) // type
-        .then_ignore(none_of(Token::Ctrl(',')).repeated())
-        .map(|((opt_comments, name), _type)| StructField {
+        .then_ignore(any().and_is(just(Token::Ctrl(',')).not()).repeated())
+        .then_ignore(just(Token::Ctrl(',')))
+        .map(|(opt_comments, name)| StructField {
             name,
             docs: opt_comments.concat(),
         });
@@ -150,6 +151,7 @@ where
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then_ignore(just(Token::Ident("struct")))
         .then(ident) // name
+        .then_ignore(any().and_is(just(Token::Ctrl('{')).not()).repeated()) // skip any generics/lifetimes
         .then_ignore(just(Token::Ctrl('{')))
         .then(field.repeated().collect())
         .then_ignore(just(Token::Ctrl('}')).or_not())
@@ -247,7 +249,7 @@ where
         .then_ignore(just(Token::Ident("unsafe")).or_not())
         .then_ignore(just(Token::Ident("fn")))
         .then(ident)
-        .then_ignore(any().and_is(just(Token::Ctrl('(')).not()).repeated()) // skip any generics
+        .then_ignore(any().and_is(just(Token::Ctrl('(')).not()).repeated()) // skip any generics/lifetimes
         .then_ignore(just(Token::Ctrl('(')))
         .then(func_argument.clone().repeated().collect())
         .then_ignore(just(Token::Ctrl(')')).or_not())
