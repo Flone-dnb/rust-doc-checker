@@ -194,6 +194,13 @@ where
     let function = comment
         .repeated()
         .collect::<Vec<&str>>()
+        .then_ignore(
+            just(Token::Ident("extern"))
+                .then_ignore(just(Token::Other('"')))
+                .then_ignore(ident)
+                .then_ignore(just(Token::Other('"')))
+                .or_not(),
+        )
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then_ignore(just(Token::Ident("const")).or_not())
         .then_ignore(just(Token::Ident("fn")))
