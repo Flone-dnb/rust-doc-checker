@@ -1,0 +1,9 @@
+[package]
+name = "rust-doc-checker"
+version = "1.0.0"
+edition = "2021"
+authors = ["Alexander Tretyakov"]
+license = "MIT"
+
+[dependencies]
+chumsky = { git = "https://github.com/zesterer/chumsky.git", rev = "ef9f20f" }

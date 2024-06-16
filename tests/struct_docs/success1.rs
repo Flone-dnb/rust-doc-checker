@@ -1,0 +1,2 @@
+/// Some docs.
+struct Foo {}
