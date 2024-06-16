@@ -195,8 +195,10 @@ where
         .repeated()
         .collect::<Vec<&str>>()
         .then_ignore(just(Token::Ident("pub")).or_not())
+        .then_ignore(just(Token::Ident("const")).or_not())
         .then_ignore(just(Token::Ident("fn")))
         .then(ident)
+        .then_ignore(any().and_is(just(Token::Ctrl('(')).not()).repeated()) // skip any generics
         .then_ignore(just(Token::Ctrl('(')))
         .then(func_argument.clone().repeated().collect())
         .then_ignore(just(Token::Ctrl(')')).or_not())
