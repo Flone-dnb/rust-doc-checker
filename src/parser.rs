@@ -84,7 +84,7 @@ pub fn token_parser<'src>(
     let operator = just("->").map(|s: &str| Token::Op(s));
 
     // A parser for control characters (delimiters, semicolons, etc.)
-    let ctrl = one_of("(),:{}").map(Token::Ctrl);
+    let ctrl = one_of("(),:{}<>").map(Token::Ctrl);
 
     // A parser for identifiers.
     let ident = text::ascii::ident().map(|ident: &str| Token::Ident(ident));
@@ -130,6 +130,39 @@ where
     let comment = select! { Token::Comment(c) => c};
     let token = select! { token => token };
 
+    // Parsers for simple field types.
+    let field_simple_no_ref_parser = any().and_is(ident);
+    let field_simple_ref_parser = just(Token::Other('&'))
+        .then_ignore(just(Token::Other('\'')).then_ignore(ident).or_not())
+        .then_ignore(field_simple_no_ref_parser);
+
+    let field_simple_parser = field_simple_ref_parser.or(field_simple_no_ref_parser);
+
+    // A parser for tuple field types.
+    let field_tuple_parser = recursive(|parser_copy| {
+        field_simple_parser
+            .clone()
+            .or(just(Token::Ctrl('(')).then_ignore(field_simple_parser.clone()))
+            .then_ignore(just(Token::Ctrl(')')).or(just(Token::Ctrl(',')).then_ignore(parser_copy)))
+    });
+
+    // A parser for generic field types.
+    let field_generic_parser = recursive(|parser_copy| {
+        field_simple_parser
+            .clone()
+            .then_ignore(
+                just(Token::Ctrl('<'))
+                    .then_ignore(field_simple_parser.clone())
+                    .or_not(),
+            )
+            .then_ignore(just(Token::Ctrl('>')).or(just(Token::Ctrl(',')).then_ignore(parser_copy)))
+    });
+
+    // A parser for field types.
+    let field_type_parser = field_generic_parser
+        .or(field_tuple_parser)
+        .or(field_simple_parser.clone());
+
     // A parser for struct fields.
     let field = comment
         .repeated()
@@ -137,8 +170,8 @@ where
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then(ident) // name
         .then_ignore(just(Token::Ctrl(':')))
-        .then_ignore(any().and_is(just(Token::Ctrl(',')).not()).repeated())
-        .then_ignore(just(Token::Ctrl(',')))
+        .then_ignore(field_type_parser)
+        .then_ignore(just(Token::Ctrl(',')).or(just(Token::Ctrl('}'))).or_not())
         .map(|(opt_comments, name)| StructField {
             name,
             docs: opt_comments.concat(),
