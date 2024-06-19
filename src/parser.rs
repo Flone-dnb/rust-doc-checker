@@ -130,38 +130,51 @@ where
     let comment = select! { Token::Comment(c) => c};
     let token = select! { token => token };
 
-    // Parsers for simple field types.
-    let field_simple_no_ref_parser = any().and_is(ident);
-    let field_simple_ref_parser = just(Token::Other('&'))
+    // Parsers for simple types.
+    let simple_type_no_ref_parser = any().and_is(ident);
+    let simple_type_ref_parser = just(Token::Other('&'))
         .then_ignore(just(Token::Other('\'')).then_ignore(ident).or_not())
-        .then_ignore(field_simple_no_ref_parser);
+        .then_ignore(just(Token::Ident("mut")).or_not())
+        .then_ignore(simple_type_no_ref_parser);
+    let simple_type_mut_parser = just(Token::Ident("mut")).then_ignore(simple_type_no_ref_parser);
+    let simple_type_trait_parser = just(Token::Other('&'))
+        .then_ignore(just(Token::Ident("impl")))
+        .then_ignore(simple_type_no_ref_parser);
+    let simple_type_dyn_trait_parser =
+        just(Token::Ident("dyn")).then_ignore(simple_type_no_ref_parser);
 
-    let field_simple_parser = field_simple_ref_parser.or(field_simple_no_ref_parser);
+    let simple_type_parser = simple_type_dyn_trait_parser
+        .or(simple_type_trait_parser)
+        .or(simple_type_mut_parser)
+        .or(simple_type_ref_parser)
+        .or(simple_type_no_ref_parser);
 
-    // A parser for tuple field types.
-    let field_tuple_parser = recursive(|parser_copy| {
-        field_simple_parser
+    // A parser for tuple types.
+    let tuple_type_parser = recursive(|parser_copy| {
+        simple_type_parser
             .clone()
-            .or(just(Token::Ctrl('(')).then_ignore(field_simple_parser.clone()))
+            .or(just(Token::Ctrl('(')).then_ignore(simple_type_parser.clone()))
             .then_ignore(just(Token::Ctrl(')')).or(just(Token::Ctrl(',')).then_ignore(parser_copy)))
     });
 
-    // A parser for generic field types.
-    let field_generic_parser = recursive(|parser_copy| {
-        field_simple_parser
-            .clone()
+    // A parser for generic types.
+    let generic_inner_parser = recursive(|parser_copy| {
+        just(Token::Ctrl('<'))
+            .or_not()
+            .then_ignore(simple_type_parser.clone())
             .then_ignore(
                 just(Token::Ctrl('<'))
-                    .then_ignore(field_simple_parser.clone())
+                    .then_ignore(parser_copy.clone())
                     .or_not(),
             )
             .then_ignore(just(Token::Ctrl('>')).or(just(Token::Ctrl(',')).then_ignore(parser_copy)))
     });
+    let generic_type_parser = simple_type_parser.clone().then_ignore(generic_inner_parser);
 
-    // A parser for field types.
-    let field_type_parser = field_generic_parser
-        .or(field_tuple_parser)
-        .or(field_simple_parser.clone());
+    // A parser for types.
+    let type_parser = generic_type_parser
+        .or(tuple_type_parser)
+        .or(simple_type_parser.clone());
 
     // A parser for struct fields.
     let field = comment
@@ -170,7 +183,7 @@ where
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then(ident) // name
         .then_ignore(just(Token::Ctrl(':')))
-        .then_ignore(field_type_parser)
+        .then_ignore(type_parser.clone())
         .then_ignore(just(Token::Ctrl(',')).or(just(Token::Ctrl('}'))).or_not())
         .map(|(opt_comments, name)| StructField {
             name,
@@ -241,18 +254,9 @@ where
     // A parser for function arguments.
     let non_self_func_argument = ident // name
         .then_ignore(just(Token::Ctrl(':')))
-        .then_ignore(
-            just(Token::Other('&'))
-                .then_ignore(
-                    just(Token::Ident("mut"))
-                        .or(just(Token::Ident("impl"))) // trait as argument
-                        .or_not(),
-                )
-                .or_not(),
-        )
-        .then(ident) // type
-        .then_ignore(just(Token::Ctrl(',')).or(just(Token::Ctrl(')'))))
-        .map(|(name, _type)| name);
+        .then_ignore(type_parser)
+        .then_ignore(just(Token::Ctrl(',')).or(just(Token::Ctrl(')'))).or_not())
+        .map(|name| name);
 
     let self_func_argument = just(Token::Ident("self"))
         .or(just(Token::Other('&')).then_ignore(just(Token::Ident("self"))))
