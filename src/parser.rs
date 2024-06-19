@@ -176,10 +176,17 @@ where
         .or(tuple_type_parser)
         .or(simple_type_parser.clone());
 
+    // A parser for attributes (like #[derive(...)]).
+    let attribute_parser = just(Token::Other('#'))
+        .then_ignore(just(Token::Other('[')))
+        .then_ignore(any().and_is(just(Token::Other(']')).not()).repeated())
+        .then_ignore(just(Token::Other(']')));
+
     // A parser for struct fields.
     let field = comment
         .repeated()
         .collect::<Vec<&str>>()
+        .then_ignore(attribute_parser.clone().repeated())
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then(ident) // name
         .then_ignore(just(Token::Ctrl(':')))
@@ -194,6 +201,7 @@ where
     let struct_parser = comment
         .repeated()
         .collect::<Vec<&str>>()
+        .then_ignore(attribute_parser.clone().repeated())
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then_ignore(just(Token::Ident("struct")))
         .then(ident) // name
@@ -281,6 +289,7 @@ where
                 .then_ignore(just(Token::Other('"')))
                 .or_not(),
         )
+        .then_ignore(attribute_parser.repeated())
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then_ignore(just(Token::Ident("const")).or_not())
         .then_ignore(just(Token::Ident("unsafe")).or_not())
