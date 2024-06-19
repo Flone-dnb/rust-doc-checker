@@ -161,7 +161,7 @@ where
     let generic_inner_parser = recursive(|parser_copy| {
         just(Token::Ctrl('<'))
             .or_not()
-            .then_ignore(simple_type_parser.clone())
+            .then_ignore(tuple_type_parser.clone().or(simple_type_parser.clone()))
             .then_ignore(
                 just(Token::Ctrl('<'))
                     .then_ignore(parser_copy.clone())
