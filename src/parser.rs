@@ -131,17 +131,20 @@ where
     let token = select! { token => token };
 
     // Parsers for simple types.
-    let simple_type_no_ref_parser = any().and_is(ident);
+    let simple_type_no_ref_parser = any().and_is(ident).or(just(Token::Other('['))
+        .then_ignore(ident)
+        .then_ignore(just(Token::Other(']'))));
     let simple_type_ref_parser = just(Token::Other('&'))
         .then_ignore(just(Token::Other('\'')).then_ignore(ident).or_not())
         .then_ignore(just(Token::Ident("mut")).or_not())
-        .then_ignore(simple_type_no_ref_parser);
-    let simple_type_mut_parser = just(Token::Ident("mut")).then_ignore(simple_type_no_ref_parser);
+        .then_ignore(simple_type_no_ref_parser.clone());
+    let simple_type_mut_parser =
+        just(Token::Ident("mut")).then_ignore(simple_type_no_ref_parser.clone());
     let simple_type_trait_parser = just(Token::Other('&'))
         .then_ignore(just(Token::Ident("impl")))
-        .then_ignore(simple_type_no_ref_parser);
+        .then_ignore(simple_type_no_ref_parser.clone());
     let simple_type_dyn_trait_parser =
-        just(Token::Ident("dyn")).then_ignore(simple_type_no_ref_parser);
+        just(Token::Ident("dyn")).then_ignore(simple_type_no_ref_parser.clone());
 
     let simple_type_parser = simple_type_dyn_trait_parser
         .or(simple_type_trait_parser)
