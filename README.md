@@ -28,7 +28,42 @@ Fixed example:
 fn foo(my_value: usize) {
     // ...
 }
+
+// or just:
+
+/// Some docs.
+/// 
+/// * `my_value`: Some docs.
+fn bar(my_value: usize) {
+    // ...
+}
 ```
+
+You can also document return values in various ways, for example:
+
+```Rust
+/// Does something.
+/// 
+/// # Arguments
+/// 
+/// * `arg1`: some docs.
+/// 
+/// # Return
+/// 
+/// Some value.
+fn foo(arg1: usize) -> usize {}
+
+// or just:
+
+/// Does something, returns some value.
+/// 
+/// # Arguments
+/// 
+/// * `arg1`: some docs.
+fn bar(arg1: usize) -> usize {}
+```
+
+As long as the documentation contains the `return` keyword, the return value is considered documented.
 
 # Build
 
