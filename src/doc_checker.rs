@@ -6,7 +6,7 @@ use crate::{
     parser::{self, ComplexToken::*, ConstInfo, EnumInfo, FunctionInfo, StructInfo, TraitInfo},
 };
 
-const RETURN_DOC_KEYWORD: &str = "Return";
+const RETURN_DOC_KEYWORD: &str = "return";
 
 pub struct DocChecker {}
 
@@ -143,11 +143,13 @@ impl DocChecker {
         }
 
         // Check return docs.
-        let return_doc_pos = func_info.docs.find(RETURN_DOC_KEYWORD);
+        // Just search for `return` text in the docs, no need to require anything more complex
+        // maybe the function is simple so allow sort docs like this: "Returns blah-blah-blah...".
+        let return_doc_pos = func_info.docs.to_lowercase().find(RETURN_DOC_KEYWORD);
         if !func_info.void_return_type {
             if return_doc_pos.is_none() {
                 return Err(format!(
-                    "expected to find a \"{}\" in the documentation that describes the return value for the function \"{}\"",
+                    "expected to find the \"{}\" keyword (case-insensitive) in the documentation that describes the return value for the function \"{}\"",
                     RETURN_DOC_KEYWORD, func_info.name
                 ));
             }
