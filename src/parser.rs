@@ -221,6 +221,7 @@ where
     let enum_parser = comment
         .repeated()
         .collect::<Vec<&str>>()
+        .then_ignore(attribute_parser.clone().repeated())
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then_ignore(just(Token::Ident("enum")))
         .then(ident) // name
@@ -249,6 +250,7 @@ where
     let const_parser = comment
         .repeated()
         .collect::<Vec<&str>>()
+        .then_ignore(attribute_parser.clone().repeated())
         .then_ignore(just(Token::Ident("pub")).or_not())
         .then_ignore(just(Token::Ident("const")))
         .then(ident) // name
