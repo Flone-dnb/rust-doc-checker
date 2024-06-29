@@ -265,7 +265,9 @@ where
         });
 
     // A parser for function arguments.
-    let non_self_func_argument = ident // name
+    let non_self_func_argument = just(Token::Ident("mut"))
+        .ignore_then(ident)
+        .or(ident)
         .then_ignore(just(Token::Ctrl(':')))
         .then_ignore(type_parser)
         .then_ignore(just(Token::Ctrl(',')).or(just(Token::Ctrl(')'))).or_not())
